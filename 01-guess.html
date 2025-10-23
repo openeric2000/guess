@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="description" content="網頁描述" />
+		<title>我的網頁</title>
+		<style>
+			body {
+				text-align: center;
+				font-family: "Microsoft JhengHei", sans-serif;
+			}
+			#container {
+				display: grid;
+				grid-template-columns: repeat(3, 100px); /* 三欄 */
+				grid-gap: 8px;
+				justify-content: center;
+				margin: 20px auto;
+			}
+
+			.tile {
+				height: 100px;
+				border-radius: 50%;
+				border: 1px solid #00000022;
+				font-size: 32px;
+				line-height: 100px;
+				text-align: center;
+				cursor: pointer;
+				transition: background 0.2s, transform 0.1s;
+			}
+
+			.tile:hover {
+				transform: scale(1.05);
+			}
+
+			.zero {
+				grid-column: 2; /* 讓「0」置中 */
+			}
+			.keypad-wrapper {
+				display: flex;
+				justify-content: center;
+				margin-top: 20px;
+			}
+			.guessInput {
+				width: 250px;
+				height: 45px;
+				font-size: 22px;
+				text-align: center;
+				border: 2px solid #555;
+				border-radius: 5px;
+				outline: none;
+			}
+
+			.btn {
+				height: 48px;
+				font-size: 20px;
+				padding: 0 20px;
+				margin-left: 8px;
+				border: none;
+				border-radius: 8px;
+				cursor: pointer;
+				transition: background 0.2s, transform 0.1s;
+			}
+
+			.answer {
+				font-size: 22px;
+				margin-top: 20px;
+				font-weight: bold;
+			}
+		</style>
+	</head>
+	<body>
+		<input type="text" class="guessInput" />
+		<button class="btn guess-btn">猜!</button>
+		<button class="btn reset-btn">Reset</button>
+		<div class="answer">
+			請輸入
+			<input
+				type="number"
+				id="minRange"
+				value="1"
+				min="1"
+				max="100"
+				style="width: 60px; text-align: center"
+			/>
+			～
+			<input
+				type="number"
+				id="maxRange"
+				value="100"
+				min="1"
+				max="100"
+				style="width: 60px; text-align: center"
+			/>
+			之間的整數
+		</div>
+		<div class="keypad-wrapper">
+			<div id="container">
+				<div class="tile" data-val="1">一</div>
+				<div class="tile" data-val="2">二</div>
+				<div class="tile" data-val="3">三</div>
+				<div class="tile" data-val="4">四</div>
+				<div class="tile" data-val="5">五</div>
+				<div class="tile" data-val="6">六</div>
+				<div class="tile" data-val="7">七</div>
+				<div class="tile" data-val="8">八</div>
+				<div class="tile" data-val="9">九</div>
+				<div class="tile zero" data-val="0">零</div>
+			</div>
+		</div>
+		<script>
+			const guessInput = document.querySelector(".guessInput");
+			const guessBtn = document.querySelector(".guess-btn");
+			const answerDisplay = document.querySelector(".answer");
+			const resetBtn = document.querySelector(".reset-btn");
+
+			let answer;
+			let min = 1;
+			let max = 100;
+
+			function initGame() {
+				const minInput = document.getElementById("minRange");
+				const maxInput = document.getElementById("maxRange");
+
+				min = parseInt(minInput.value);
+				max = parseInt(maxInput.value);
+
+				// 檢查範圍是否合法
+				if (isNaN(min) || isNaN(max) || min >= max) {
+					alert("請輸入有效的範圍！（例如 1～100）");
+					min = 1;
+					max = 100;
+					minInput.value = min;
+					maxInput.value = max;
+				}
+
+				answer = getRandomIntInclusive(min, max);
+				guessInput.value = "";
+				guessInput.disabled = false;
+				guessBtn.disabled = false;
+				guessInput.focus();
+
+				// ✅ 重建包含輸入框的提示文字（避免被 textContent 蓋掉）
+				answerDisplay.innerHTML = `
+		請輸入
+		<input type="number" id="minRange" class="rangeInput" value="${min}" />
+		～
+		<input type="number" id="maxRange" class="rangeInput" value="${max}" />
+		之間的整數
+	`;
+
+				// 重新綁定事件（因為 innerHTML 會重建節點）
+				document
+					.getElementById("minRange")
+					.addEventListener("change", initGame);
+				document
+					.getElementById("maxRange")
+					.addEventListener("change", initGame);
+
+				console.clear();
+				console.log(`✅ 答案（測試用）: ${answer}`);
+			}
+
+			function getRandomIntInclusive(min, max) {
+				const minCeiled = Math.ceil(min);
+				const maxFloored = Math.floor(max);
+				return Math.floor(
+					Math.random() * (maxFloored - minCeiled + 1) + minCeiled
+				); // 最大值和最小值都包含
+			}
+
+			answer = getRandomIntInclusive(min, max);
+
+			resetBtn.addEventListener("click", function () {
+				alert("已清除!");
+				document.getElementById("minRange").value = 1;
+				document.getElementById("maxRange").value = 100;
+				initGame();
+			});
+
+			guessBtn.addEventListener("click", function () {
+				let guessNum = guessInput.value;
+				if (isNaN(guessNum)) {
+					alert("請輸入數字");
+					return;
+				}
+
+				if (guessNum > max || guessNum < min) {
+					alert("請輸入範圍內的數字");
+					guessInput.value = "";
+					guessInput.focus();
+					resetTileColors();
+					return;
+				}
+
+				guessNum = parseInt(guessNum);
+
+				function showRange() {
+					answerDisplay.textContent = `請輸入 ${min}～${max} 之間的整數`;
+				}
+
+				if (guessNum === answer) {
+					alert(`猜中了！答案是：${answer}`);
+				} else if (guessNum < min || guessNum > max) {
+					showRange();
+				} else if (guessNum > answer) {
+					max = guessNum - 1;
+					showRange();
+				} else {
+					min = guessNum + 1;
+					showRange();
+				}
+				guessInput.value = "";
+				guessInput.focus();
+				resetTileColors();
+			});
+			// 讓使用者按 Enter 也能送出猜測
+			guessInput.addEventListener("keyup", function (e) {
+				if (e.key === "Enter") {
+					guessBtn.click(); // 觸發「猜！」按鈕的點擊事件
+				}
+			});
+			// 事件委派：點數字時輸入到 guessInput
+			document
+				.querySelector("#container")
+				.addEventListener("click", function (e) {
+					if (e.target.classList.contains("tile")) {
+						const val = e.target.dataset.val;
+						guessInput.value += val; // 將點的數字加入輸入框
+						// 讓方塊隨機變色
+						e.target.style.background = `rgb(${random(
+							255
+						)},${random(255)},${random(255)})`;
+					}
+				});
+
+			function random(number) {
+				return Math.floor(Math.random() * number);
+			}
+
+			function resetTileColors() {
+				document.querySelectorAll(".tile").forEach((tile) => {
+					tile.style.background = ""; // 清除背景顏色
+				});
+			}
+			document
+				.getElementById("minRange")
+				.addEventListener("change", initGame);
+			document
+				.getElementById("maxRange")
+				.addEventListener("change", initGame);
+
+			initGame();
+		</script>
+	</body>
+</html>
